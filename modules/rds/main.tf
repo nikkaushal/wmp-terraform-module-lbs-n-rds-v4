@@ -1,0 +1,67 @@
+
+resource "aws_db_parameter_group" "main" {
+    name = "wmp-${var.env}"
+    family = "postgres16"
+    parameter {
+        name = "log_min_duration_statement"
+        value = "1000"
+    }
+}
+
+
+resource "aws_db_subnet_group" "main" {
+    name       = "wmp-${var.env}"
+    subnet_ids = var.subnet_ids
+    tags = {
+        Name = "wmp-${var.env}"
+    }
+}
+
+resource "aws_security_group" "main" {
+    name = "wmp-rds-${var.env}"
+    description = "Security group for RDS instance in ${var.env} environment"
+    vpc_id = var.vpc_id
+
+    ingress {
+        from_port   = 5432
+        to_port     = 5432
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    egress {
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    tags = {
+        Name = "wmp-rds-${var.env}"
+    }
+}
+
+resource "aws_db_instance" "main" {
+    allocated_storage = var.allocated_storage
+    db_name = "default-dummy"
+    engine = "postgres"
+    engine_version = "16.13"
+    instance_class = "db.t3.micro"
+    username = "wmpuser"
+    password = "WmpUser#1234"
+    parameter_group_name = aws_db_parameter_group.main.name
+    skip_final_snapshot = true
+    db_subnet_group_name = aws_db_subnet_group.main.name
+    identifier             = "wmp-${var.env}"  
+    vpc_security_group_ids = [aws_security_group.main.id]
+  
+}
+
+resource "null_resource" "schema_load" {
+  provisioner "local-exec" {
+    command = <<EOF
+curl -o global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+PGPASSWORD='WmpUser#1234' /usr/pgsql-16/bin/psql  'host=${aws_db_instance.main.address} port=5432 dbname=default_dummy user=wmpuser sslmode=verify-full sslrootcert=./global-bundle.pem' <${path.module}/setup.sql
+EOF
+  }
+}
