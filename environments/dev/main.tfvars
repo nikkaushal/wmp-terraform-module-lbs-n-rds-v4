@@ -5,7 +5,7 @@ subnets    = ["subnet-73f3732c", "subnet-7f830419"]
 databases = {
   postgres = {
     allocated_storage = 10
-    }
+  }
 }
 
 apps = {
