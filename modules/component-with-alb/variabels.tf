@@ -24,3 +24,6 @@ variable "subnets" {
 variable "vpc_id" {
 
 }
+variable "postres_rds_address" {
+
+}

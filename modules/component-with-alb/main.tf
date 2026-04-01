@@ -54,6 +54,7 @@ resource "aws_launch_template" "main" {
     {
       ENV       = var.env,
       COMPONENT = var.component
+      postres_rds_address = var.postres_rds_address
     }
   ))
   tag_specifications {
