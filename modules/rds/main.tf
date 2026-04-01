@@ -59,12 +59,45 @@ resource "aws_db_instance" "main" {
   vpc_security_group_ids = [aws_security_group.main.id]
 }
 
+# resource "null_resource" "schema_load" {
+#     depends_on = [aws_db_instance.main]
+#   provisioner "local-exec" {
+#     command = <<EOF
+    
+# curl -o global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+# PGPASSWORD='WmpUser#1234' psql 'host=${aws_db_instance.main.address} port=5432 dbname=default_dummy user=wmpuser sslmode=verify-full sslrootcert=./global-bundle.pem' <${path.module}/setup.sql
+# EOF
+#   }
+# }
 resource "null_resource" "schema_load" {
-    depends_on = [aws_db_instance.main]
+  depends_on = [aws_db_instance.main]
+
   provisioner "local-exec" {
-    command = <<EOF
-curl -o global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
-PGPASSWORD='WmpUser#1234' psql 'host=${aws_db_instance.main.address} port=5432 dbname=default_dummy user=wmpuser sslmode=verify-full sslrootcert=./global-bundle.pem' <${path.module}/setup.sql
-EOF
+    command = <<-EOT
+      # Check if psql exists
+      if ! command -v psql &> /dev/null; then
+        echo "======================================"
+        echo "ERROR: psql not found"
+        echo "======================================"
+        echo "Please install PostgreSQL client:"
+        echo ""
+        echo "Amazon Linux 2023/RHEL 9:"
+        echo "  sudo dnf install -y postgresql16"
+        echo ""
+        echo "Amazon Linux 2:"
+        echo "  sudo yum install -y postgresql"
+        echo ""
+        echo "Ubuntu/Debian:"
+        echo "  sudo apt-get install -y postgresql-client"
+        echo ""
+        echo "macOS:"
+        echo "  brew install postgresql@16"
+        echo "======================================"
+        exit 1
+      fi
+      sudo dnf install -y postgresql16
+      curl -o global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+      PGPASSWORD='WmpUser#1234' psql 'host=${aws_db_instance.main.address} port=5432 dbname=default_dummy user=wmpuser sslmode=verify-full sslrootcert=./global-bundle.pem' < ${path.module}/setup.sql
+    EOT
   }
 }
