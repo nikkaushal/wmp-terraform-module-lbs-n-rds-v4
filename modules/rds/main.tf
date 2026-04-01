@@ -1,29 +1,33 @@
-
+terraform {
+  required_providers {
+    null = {
+      source  = "hashicorp/null"
+      version = "3.2.4"
+    }
+  }
+}
 resource "aws_db_parameter_group" "main" {
   name   = "wmp-${var.env}"
   family = "postgres16"
-  parameter {
-    name  = "log_min_duration_statement"
-    value = "1000"
-  }
 }
-
 
 resource "aws_db_subnet_group" "main" {
   name       = "wmp-${var.env}"
   subnet_ids = var.subnet_ids
+
   tags = {
     Name = "wmp-${var.env}"
   }
 }
 
 resource "aws_security_group" "main" {
-  name        = "wmp-rds-${var.env}"
+
+  name = "wmp-rds-${var.env}"
 
   ingress {
     from_port   = 5432
     to_port     = 5432
-    protocol    = "tcp"
+    protocol    = "TCP"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -37,9 +41,11 @@ resource "aws_security_group" "main" {
   tags = {
     Name = "wmp-rds-${var.env}"
   }
+
 }
 
 resource "aws_db_instance" "main" {
+  identifier             = "wmp-${var.env}"
   allocated_storage      = var.allocated_storage
   db_name                = "default_dummy"
   engine                 = "postgres"
@@ -50,9 +56,7 @@ resource "aws_db_instance" "main" {
   parameter_group_name   = aws_db_parameter_group.main.name
   skip_final_snapshot    = true
   db_subnet_group_name   = aws_db_subnet_group.main.name
-  identifier             = "wmp-${var.env}"
   vpc_security_group_ids = [aws_security_group.main.id]
-
 }
 
 resource "null_resource" "schema_load" {
@@ -63,3 +67,4 @@ PGPASSWORD='WmpUser#1234' /usr/pgsql-16/bin/psql  'host=${aws_db_instance.main.a
 EOF
   }
 }
+
