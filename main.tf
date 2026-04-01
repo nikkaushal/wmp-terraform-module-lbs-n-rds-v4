@@ -22,7 +22,7 @@ module "apps" {
   ports         = each.value["ports"]
   lb            = each.value["lb"]
   asg           = each.value["asg"]
-  postres_rds_address = module.databases[ "postgres" ].postgres_rds_address
+  postgres_rds_address = module.databases[ "postgres" ].postgres_rds_address
 
 }
 
